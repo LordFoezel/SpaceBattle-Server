@@ -1,5 +1,4 @@
 # SpaceBattle-Server
 
-Server Run:
-
-Server Test:
+Server runs at:
+- http://localhost:8000/
