@@ -5,6 +5,6 @@ Server runs at:
 
 - 
 Quicklinks:
-- SpaceBattle: https://github.com/LordFoezel/SpaceBattle [SpaceBattle Main README](../README.md)
+- SpaceBattle: https://github.com/LordFoezel/SpaceBattle -> [SpaceBattle README](../README.md)
 - Client: https://github.com/LordFoezel/SpaceBattle-Client -> [SpaceBattle Client README](client/README.md)
 - Server: https://github.com/LordFoezel/SpaceBattle-Server -> [SpaceBattle Server README](server/README.md)
