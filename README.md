@@ -8,4 +8,4 @@ Quicklinks:
 - Client: https://github.com/LordFoezel/SpaceBattle-Client -> [SpaceBattle Client README](client/README.md)
 
 Error fixes:
-- 
+- no fixes
