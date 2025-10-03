@@ -6,9 +6,10 @@ from app.db.core import db, build_delete, build_insert, build_select, build_upda
 
 ModelT = TypeVar("ModelT")
 UpdateModelT = TypeVar("UpdateModelT")
+InsertModelT = TypeVar("InsertModelT")
 
 
-class Repository(Generic[ModelT, UpdateModelT]):
+class Repository(Generic[ModelT, UpdateModelT, InsertModelT]):
     """Generic helper encapsulating common CRUD helpers for simple tables."""
 
     def __init__(
@@ -18,11 +19,13 @@ class Repository(Generic[ModelT, UpdateModelT]):
         *,
         default_order_by: str | None = None,
         prepare_update: Callable[[UpdateModelT], dict[str, Any]] | None = None,
+        prepare_insert: Callable[[UpdateModelT], dict[str, Any]] | None = None,
     ) -> None:
         self._table = table
         self._to_model = model_factory
         self._default_order_by = default_order_by
         self._prepare_update = prepare_update or self._default_prepare_update
+        self._prepare_Insert = prepare_insert or self._default_prepare_insert
 
     def _default_prepare_update(self, patch: UpdateModelT) -> dict[str, Any]:
         if patch is None:
@@ -57,9 +60,7 @@ class Repository(Generic[ModelT, UpdateModelT]):
         return prepared
 
     def get_by_id(self, entity_id: int) -> ModelT | None:
-        sql, params = build_select(self._table, where={"id": entity_id}, limit=1)
-        row = db.fetch_one(sql, params)
-        return self._to_model(row) if row else None
+        return self.get_one({"id": entity_id})
 
     def list(
         self,
@@ -78,6 +79,19 @@ class Repository(Generic[ModelT, UpdateModelT]):
         )
         rows = db.fetch_all(sql, params)
         return [self._to_model(row) for row in rows]
+    
+    def get_one(
+        self,
+        *,
+        where: dict[str, Any] | None = None,
+    ) -> ModelT | None:
+        sql, params = build_select(
+            self._table,
+            where=where, 
+            limit=1,
+        )
+        row = db.fetch_one(sql, params)
+        return self._to_model(row) if row else None
 
     def insert(self, payload: Any, *, returning: str | None = "id") -> ModelT | dict[str, Any] | None:
         data = self._prepare_insert(payload)

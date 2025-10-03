@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.core import db, build_insert, build_select
-from app.models.users import User, UserCreate, UserUpdate
+from app.db.core import db
+from app.models.users import User, UserInsert, UserUpdate
 from app.repositories.base import Repository
 
 TABLE = "users"
@@ -18,11 +18,17 @@ def _prepare_user_update(patch: UserUpdate) -> dict[str, Any]:
     return {key: (value.value if hasattr(value, "value") else value) for key, value in data.items()}
 
 
-_repo = Repository[User, UserUpdate](
+def _prepare_user_insert(patch: UserInsert) -> dict[str, Any]:
+    data = patch.model_dump(exclude_unset=True)
+    return {key: (value.value if hasattr(value, "value") else value) for key, value in data.items()}
+
+
+_repo = Repository[User, UserUpdate, UserInsert](
     table=TABLE,
     model_factory=_user_factory,
     default_order_by="id ASC",
     prepare_update=_prepare_user_update,
+    prepare_insert=_prepare_user_insert,
 )
 
 
@@ -30,11 +36,8 @@ def get_by_id(user_id: int) -> User | None:
     return _repo.get_by_id(user_id)
 
 
-def get_by_email(email: str) -> User | None:
-    sql, params = build_select(TABLE, where={"email": email}, limit=1)
-    row = db.fetch_one(sql, params)
-    return User(**row) if row else None
-
+def get_one(where: dict[str, Any]) -> User | None:
+    return db.get_one(where)
 
 def list_users(
     where: dict[str, Any] | None = None,
@@ -44,7 +47,7 @@ def list_users(
     return _repo.list(offset=offset, limit=limit, where=where)
 
 
-def create(u: UserCreate) -> User:
+def insert(u: UserInsert) -> User:
     return _repo.insert(u)
 
 
@@ -54,3 +57,7 @@ def update(user_id: int, patch: UserUpdate) -> User | None:
 
 def delete(user_id: int) -> int:
     return _repo.delete(user_id)
+
+
+def get_by_email(email: str) -> User | None:
+    return db.get_one({"email": email})

@@ -2,6 +2,7 @@
 from __future__ import annotations
 from enum import Enum
 from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 
 class UserRole(str, Enum):
     admin = "admin"
@@ -14,9 +15,9 @@ class User(BaseModel):
     verified: bool
     blocked: bool
     role: UserRole
-    created_at: str  # oder datetime, falls du willst
+    created_at: datetime
 
-class UserCreate(BaseModel):
+class UserInsert(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr
     password_hash: str  # Hash kommt aus deiner App (bcrypt/argon2)
