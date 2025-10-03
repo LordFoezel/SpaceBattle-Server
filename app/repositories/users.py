@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.core import db
-from app.models.users import User, UserInsert, UserUpdate
+from app.models.users import User, UserCreate, UserUpdate
 from app.repositories.base import Repository
 
 TABLE = "users"
@@ -18,12 +17,12 @@ def _prepare_user_update(patch: UserUpdate) -> dict[str, Any]:
     return {key: (value.value if hasattr(value, "value") else value) for key, value in data.items()}
 
 
-def _prepare_user_insert(patch: UserInsert) -> dict[str, Any]:
-    data = patch.model_dump(exclude_unset=True)
+def _prepare_user_insert(payload: UserCreate) -> dict[str, Any]:
+    data = payload.model_dump(exclude_unset=True)
     return {key: (value.value if hasattr(value, "value") else value) for key, value in data.items()}
 
 
-_repo = Repository[User, UserUpdate, UserInsert](
+_repo = Repository[User, UserUpdate, UserCreate](
     table=TABLE,
     model_factory=_user_factory,
     default_order_by="id ASC",
@@ -37,7 +36,8 @@ def get_by_id(user_id: int) -> User | None:
 
 
 def get_one(where: dict[str, Any]) -> User | None:
-    return db.get_one(where)
+    return _repo.get_one(where=where)
+
 
 def list_users(
     where: dict[str, Any] | None = None,
@@ -47,8 +47,13 @@ def list_users(
     return _repo.list(offset=offset, limit=limit, where=where)
 
 
-def insert(u: UserInsert) -> User:
-    return _repo.insert(u)
+def create(payload: UserCreate) -> User:
+    created = _repo.insert(payload, returning="*")
+    if isinstance(created, User):
+        return created
+    if isinstance(created, dict):
+        return _user_factory(created)
+    raise RuntimeError("Repository returned no data for created user")
 
 
 def update(user_id: int, patch: UserUpdate) -> User | None:
@@ -60,4 +65,4 @@ def delete(user_id: int) -> int:
 
 
 def get_by_email(email: str) -> User | None:
-    return db.get_one({"email": email})
+    return get_one({"email": email})

@@ -1,15 +1,16 @@
-# app/db/core.py
 from __future__ import annotations
+
 from contextlib import contextmanager
 from typing import Any, Iterable, Iterator
 
 import psycopg
 from psycopg.rows import dict_row
 
-from app.databaseConnector import get_connector  # <- bei dir vorhanden
+from app.databaseConnector import get_connector
+
 
 class Db:
-    """Thin convenience wrapper around psycopg with pooling & helpers."""
+    """Thin convenience wrapper around psycopg with pooling helpers."""
 
     @contextmanager
     def _conn(self) -> Iterator[psycopg.Connection]:
@@ -18,12 +19,11 @@ class Db:
 
     @contextmanager
     def transaction(self) -> Iterator[psycopg.Connection]:
-        """Explicit transaction (autocommit is on in pool)."""
+        """Provide an explicit transaction while autocommit is on in the pool."""
         with self._conn() as conn:
             with conn.transaction():
                 yield conn
 
-    # ---------- low-level ----------
     def fetch_all(self, sql: str, params: Iterable[Any] | None = None) -> list[dict]:
         with self._conn() as conn, conn.cursor(row_factory=dict_row) as cur:
             cur.execute(sql, params or [])
@@ -44,9 +44,10 @@ class Db:
             cur.executemany(sql, seq_params)
             return cur.rowcount
 
+
 db = Db()
 
-# ---------- tiny SQL builder (safe placeholders) ----------
+
 def build_insert(table: str, data: dict[str, Any], returning: str | None = None) -> tuple[str, list[Any]]:
     cols = list(data.keys())
     vals = list(data.values())
@@ -56,6 +57,7 @@ def build_insert(table: str, data: dict[str, Any], returning: str | None = None)
         sql += f" RETURNING {returning}"
     return sql, vals
 
+
 def build_update(table: str, data: dict[str, Any], where: dict[str, Any]) -> tuple[str, list[Any]]:
     set_clause = ", ".join([f"{k} = %s" for k in data.keys()])
     where_clause = " AND ".join([f"{k} = %s" for k in where.keys()])
@@ -63,11 +65,13 @@ def build_update(table: str, data: dict[str, Any], where: dict[str, Any]) -> tup
     sql = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
     return sql, params
 
+
 def build_delete(table: str, where: dict[str, Any]) -> tuple[str, list[Any]]:
     where_clause = " AND ".join([f"{k} = %s" for k in where.keys()])
     params = list(where.values())
     sql = f"DELETE FROM {table} WHERE {where_clause}"
     return sql, params
+
 
 def build_select(
     table: str,

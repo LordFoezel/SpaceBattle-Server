@@ -1,12 +1,15 @@
-# app/models/users.py
 from __future__ import annotations
-from enum import Enum
-from pydantic import BaseModel, EmailStr, Field
+
 from datetime import datetime
+from enum import Enum
+
+from pydantic import BaseModel, EmailStr, Field
+
 
 class UserRole(str, Enum):
     admin = "admin"
     player = "player"
+
 
 class User(BaseModel):
     id: int
@@ -17,11 +20,13 @@ class User(BaseModel):
     role: UserRole
     created_at: datetime
 
-class UserInsert(BaseModel):
+
+class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr
-    password_hash: str  # Hash kommt aus deiner App (bcrypt/argon2)
+    password_hash: str
     role: UserRole = UserRole.player
+
 
 class UserUpdate(BaseModel):
     name: str | None = None
