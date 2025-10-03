@@ -6,6 +6,9 @@ from typing import List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database import shutdown_connector
+from app.routes import database_router, health_router, system_router
+
 API_TITLE = "SpaceBattle API"
 API_DESCRIPTION = "Backend services for the SpaceBattle application."
 DEFAULT_ALLOWED_ORIGINS = [
@@ -54,13 +57,12 @@ app.add_middleware(
 )
 
 
-@app.get("/", summary="SpaceBattle welcome message")
-async def read_root() -> dict[str, str]:
-    """Return a simple greeting to confirm the API is reachable."""
-    return {"message": "Welcome to the SpaceBattle API"}
+@app.on_event("shutdown")
+async def _shutdown_event() -> None:
+    """Close shared resources when the application stops."""
+    shutdown_connector()
 
 
-@app.get("/health", summary="Container liveness check")
-async def health() -> dict[str, str]:
-    """Expose a lightweight endpoint useful for container health checks."""
-    return {"status": "ok"}
+app.include_router(database_router)
+app.include_router(system_router)
+app.include_router(health_router)
