@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from app.models.users import User, UserCreate, UserUpdate
 from app.repositories import users as repo
-from app.core.errors import ErrorResponse, AppHttpStatus
+from app.core.errors import AppHttpStatus
 from app.core.exceptions import NotFoundError
 from app.core.openapi import with_errors
 
