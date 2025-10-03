@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from queue import Empty, LifoQueue
 from threading import Lock
 from typing import Generator, Iterable
 
 import psycopg
+from psycopg_pool import ConnectionPool
 
 DATABASE_URL_ENV = "DATABASE_URL"
 MIN_POOL_SIZE_ENV = "DATABASE_MIN_POOL_SIZE"
@@ -22,6 +22,10 @@ class DatabaseConfigurationError(RuntimeError):
 def _resolve_pool_size(value: int | None, env_var: str, default: int) -> int:
     """Resolve an explicit or environment-provided pool size."""
     if value is not None:
+        if value < 1:
+            raise DatabaseConfigurationError(
+                f"Invalid value for {env_var}: must be a positive integer."
+            )
         return value
 
     raw_value = os.getenv(env_var)
@@ -41,72 +45,6 @@ def _resolve_pool_size(value: int | None, env_var: str, default: int) -> int:
         )
 
     return parsed
-
-
-class _ConnectionPool:
-    """Small LIFO connection pool to avoid requiring psycopg_pool."""
-
-    def __init__(self, conninfo: str, *, min_size: int, max_size: int, autocommit: bool) -> None:
-        if min_size < 1:
-            raise DatabaseConfigurationError("Pool size must be at least 1")
-        if max_size < min_size:
-            raise DatabaseConfigurationError("Pool max_size must not be smaller than min_size")
-
-        self._conninfo = conninfo
-        self._autocommit = autocommit
-        self._max_size = max_size
-        self._pool: LifoQueue[psycopg.Connection] = LifoQueue(maxsize=max_size)
-        self._lock = Lock()
-        self._total_connections = 0
-
-        for _ in range(min_size):
-            self._pool.put(self._new_connection())
-            self._total_connections += 1
-
-    def _new_connection(self) -> psycopg.Connection:
-        return psycopg.connect(self._conninfo, autocommit=self._autocommit)
-
-    def _get_connection(self) -> psycopg.Connection:
-        try:
-            conn = self._pool.get_nowait()
-        except Empty:
-            with self._lock:
-                if self._total_connections < self._max_size:
-                    conn = self._new_connection()
-                    self._total_connections += 1
-                else:
-                    conn = self._pool.get()
-
-        if conn.closed:
-            return self._new_connection()
-
-        return conn
-
-    def _return_connection(self, conn: psycopg.Connection) -> None:
-        if conn.closed:
-            with self._lock:
-                self._total_connections = max(0, self._total_connections - 1)
-            return
-
-        try:
-            self._pool.put_nowait(conn)
-        except Exception:
-            conn.close()
-
-    @contextmanager
-    def connection(self) -> Generator[psycopg.Connection, None, None]:
-        conn = self._get_connection()
-        try:
-            yield conn
-        finally:
-            self._return_connection(conn)
-
-    def close(self) -> None:
-        while not self._pool.empty():
-            conn = self._pool.get_nowait()
-            conn.close()
-        with self._lock:
-            self._total_connections = 0
 
 
 class DatabaseConnector:
@@ -141,12 +79,13 @@ class DatabaseConnector:
                 "Database pool misconfigured: min_size cannot be greater than max_size."
             )
 
-        # LIFO pooling keeps hot connections ready without requiring psycopg_pool.
-        self._pool = _ConnectionPool(
-            self._dsn,
+        # psycopg_pool manages connection lifecycle for us. autocommit ensures reads are immediate.
+        self._pool = ConnectionPool(
+            conninfo=self._dsn,
             min_size=resolved_min_size,
             max_size=resolved_max_size,
-            autocommit=True,
+            kwargs={"autocommit": True},
+            open=False,
         )
 
     def close(self) -> None:
@@ -156,6 +95,8 @@ class DatabaseConnector:
     @contextmanager
     def connection(self) -> Generator[psycopg.Connection, None, None]:
         """Provide a pooled connection as a context manager."""
+        if self._pool.closed:
+            self._pool.open(wait=True)
         with self._pool.connection() as conn:  # type: ignore[assignment]
             yield conn
 
