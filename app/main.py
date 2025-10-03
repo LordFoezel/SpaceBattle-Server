@@ -6,8 +6,8 @@ from typing import List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import shutdown_connector
-from app.routes import database_router, health_router, system_router
+from app.databaseConnector import shutdown_connector
+from app.routes import database_router, health_router, system_router, user_router
 
 API_TITLE = "SpaceBattle API"
 API_DESCRIPTION = "Backend services for the SpaceBattle application."
@@ -66,3 +66,4 @@ async def _shutdown_event() -> None:
 app.include_router(database_router)
 app.include_router(system_router)
 app.include_router(health_router)
+app.include_router(user_router)
