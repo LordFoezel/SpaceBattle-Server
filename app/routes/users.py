@@ -1,36 +1,39 @@
-# app/routes/users.py
 from __future__ import annotations
-from fastapi import APIRouter, HTTPException
-from app.models.users import UserCreate, UserUpdate
+from fastapi import APIRouter
+from app.models.users import User, UserCreate, UserUpdate
 from app.repositories import users as repo
+from app.core.errors import ErrorResponse, AppHttpStatus
+from app.core.exceptions import NotFoundError
+from app.core.openapi import with_errors
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-@router.get("/", response_model=list[dict])
-def list_users(offset: int = 0, limit: int = 50):
-    return [u.model_dump() for u in repo.list_users(offset, limit)]
+@router.get("/", response_model=list[User], responses=with_errors())
+def list_users():
+    return repo.list_users()
 
-@router.get("/{user_id}", response_model=dict)
+
+@router.get("/", response_model=list[User], responses=with_errors())
 def get_user(user_id: int):
     u = repo.get_by_id(user_id)
     if not u:
-        raise HTTPException(404, "User not found")
-    return u.model_dump()
+        raise NotFoundError(f"User {user_id} not found")
+    return u
 
-@router.post("/", response_model=dict, status_code=201)
+@router.post("/", response_model=User, status_code=AppHttpStatus.CREATED, responses=with_errors())
 def create_user(payload: UserCreate):
     u = repo.create(payload)
-    return u.model_dump()
+    return u
 
-@router.patch("/{user_id}", response_model=dict)
+@router.patch("/{user_id}", response_model=User, responses=with_errors())
 def update_user(user_id: int, payload: UserUpdate):
     u = repo.update(user_id, payload)
     if not u:
-        raise HTTPException(404, "User not found")
-    return u.model_dump()
+        raise NotFoundError(f"User {user_id} not found")
+    return u
 
-@router.delete("/{user_id}", status_code=204)
+@router.delete("/{user_id}", status_code=AppHttpStatus.NO_CONTENT, responses=with_errors())
 def delete_user(user_id: int):
     affected = repo.delete(user_id)
     if affected == 0:
-        raise HTTPException(404, "User not found")
+        raise NotFoundError(f"User {user_id} not found")

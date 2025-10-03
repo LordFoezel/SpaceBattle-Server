@@ -6,8 +6,17 @@ from typing import List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.errors import ErrorResponse, AppErrorCode
+from app.core.exceptions import NotFoundError, ConflictError
+
+
+from app.core.handlers import register_exception_handlers
+
+from starlette.responses import JSONResponse
+from starlette import status
+
 from app.databaseConnector import shutdown_connector
-from app.routes import database_router, health_router, system_router, user_router
+from app.routes import database_router, health_router, system_router, users_router
 
 API_TITLE = "SpaceBattle API"
 API_DESCRIPTION = "Backend services for the SpaceBattle application."
@@ -63,7 +72,14 @@ async def _shutdown_event() -> None:
     shutdown_connector()
 
 
+
+# Router registrieren
 app.include_router(database_router)
 app.include_router(system_router)
 app.include_router(health_router)
-app.include_router(user_router)
+app.include_router(users_router)
+
+
+
+# Exception-Handler registrieren
+register_exception_handlers(app)
