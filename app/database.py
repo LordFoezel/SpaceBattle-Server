@@ -8,136 +8,85 @@ from typing import Generator, Iterable
 import psycopg
 from psycopg_pool import ConnectionPool
 
-DATABASE_URL_ENV = "DATABASE_URL"
-MIN_POOL_SIZE_ENV = "DATABASE_MIN_POOL_SIZE"
-MAX_POOL_SIZE_ENV = "DATABASE_MAX_POOL_SIZE"
-DEFAULT_MIN_POOL_SIZE = 1
-DEFAULT_MAX_POOL_SIZE = 5
-
 
 class DatabaseConfigurationError(RuntimeError):
-    """Raised when the database connector is misconfigured."""
+    pass
 
 
-def _resolve_pool_size(value: int | None, env_var: str, default: int) -> int:
-    """Resolve an explicit or environment-provided pool size."""
-    if value is not None:
-        return value
-
-    raw_value = os.getenv(env_var)
-    if raw_value is None or raw_value.strip() == "":
-        return default
-
+def _req(name: str) -> str:
     try:
-        parsed = int(raw_value)
+        v = os.environ[name]
+    except KeyError as exc:
+        raise DatabaseConfigurationError(f"Missing required env var: {name}") from exc
+    if not v.strip():
+        raise DatabaseConfigurationError(f"Env var {name} must not be empty")
+    return v
+
+
+def _req_pos_int(name: str) -> int:
+    raw = _req(name)
+    try:
+        val = int(raw)
     except ValueError as exc:
-        raise DatabaseConfigurationError(
-            f"Invalid value for {env_var}: expected an integer, got {raw_value!r}."
-        ) from exc
-
-    if parsed < 1:
-        raise DatabaseConfigurationError(
-            f"Invalid value for {env_var}: must be a positive integer."
-        )
-
-    return parsed
+        raise DatabaseConfigurationError(f"{name} must be an integer, got {raw!r}") from exc
+    if val < 1:
+        raise DatabaseConfigurationError(f"{name} must be >= 1")
+    return val
 
 
 class DatabaseConnector:
-    """Thin wrapper around a psycopg connection pool for PostgreSQL access."""
+    """Strict env-only config. Fails fast if anything is missing/wrong."""
 
-    def __init__(
-        self,
-        dsn: str | None = None,
-        *,
-        min_size: int | None = None,
-        max_size: int | None = None,
-    ) -> None:
-        self._dsn = dsn or os.getenv(DATABASE_URL_ENV)
-        if not self._dsn:
-            raise DatabaseConfigurationError(
-                "Database connection string missing. Set the DATABASE_URL environment variable."
-            )
+    def __init__(self) -> None:
+        dsn = _req("DATABASE_URL")
+        min_size = _req_pos_int("DATABASE_MIN_POOL_SIZE")
+        max_size = _req_pos_int("DATABASE_MAX_POOL_SIZE")
+        if min_size > max_size:
+            raise DatabaseConfigurationError("min_size cannot be greater than max_size")
 
-        resolved_min_size = _resolve_pool_size(
-            min_size,
-            MIN_POOL_SIZE_ENV,
-            DEFAULT_MIN_POOL_SIZE,
-        )
-        resolved_max_size = _resolve_pool_size(
-            max_size,
-            MAX_POOL_SIZE_ENV,
-            DEFAULT_MAX_POOL_SIZE,
-        )
-
-        if resolved_min_size > resolved_max_size:
-            raise DatabaseConfigurationError(
-                "Database pool misconfigured: min_size cannot be greater than max_size."
-            )
-
-        # psycopg_pool manages connection lifecycle for us. autocommit ensures reads are immediate.
         self._pool = ConnectionPool(
-            conninfo=self._dsn,
-            min_size=resolved_min_size,
-            max_size=resolved_max_size,
+            conninfo=dsn,
+            min_size=min_size,
+            max_size=max_size,
             kwargs={"autocommit": True},
         )
 
     def close(self) -> None:
-        """Close the underlying connection pool."""
         self._pool.close()
 
     @contextmanager
     def connection(self) -> Generator[psycopg.Connection, None, None]:
-        """Provide a pooled connection as a context manager."""
         with self._pool.connection() as conn:  # type: ignore[assignment]
             yield conn
 
     def iter_user_tables(self) -> Iterable[str]:
-        """Yield user-defined tables in the database as fully-qualified names."""
-        query = (
-            "SELECT schemaname, tablename "
-            "FROM pg_catalog.pg_tables "
-            "WHERE schemaname NOT IN ('pg_catalog', 'information_schema') "
-            "ORDER BY schemaname, tablename"
-        )
-
-        with self.connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-                for schemaname, tablename in cursor.fetchall():
-                    if schemaname == "public":
-                        yield tablename
-                    else:
-                        yield f"{schemaname}.{tablename}"
+        q = ("SELECT schemaname, tablename "
+             "FROM pg_catalog.pg_tables "
+             "WHERE schemaname NOT IN ('pg_catalog','information_schema') "
+             "ORDER BY schemaname, tablename")
+        with self.connection() as c, c.cursor() as cur:
+            cur.execute(q)
+            for s, t in cur.fetchall():
+                yield t if s == "public" else f"{s}.{t}"
 
 
+# Singleton – bleibt gleich:
 _connector: DatabaseConnector | None = None
-_connector_lock = Lock()
-
+_lock = Lock()
 
 def init_connector() -> DatabaseConnector:
-    """Initialise the global connector if needed and return it."""
     global _connector
-
     if _connector is None:
-        with _connector_lock:
+        with _lock:
             if _connector is None:
                 _connector = DatabaseConnector()
-
     return _connector
 
-
 def get_connector() -> DatabaseConnector:
-    """Return the global connector, ensuring it has been initialised."""
-    connector = _connector or init_connector()
-    return connector
-
+    return _connector or init_connector()
 
 def shutdown_connector() -> None:
-    """Tear down the connector if it exists."""
     global _connector
-
     if _connector is not None:
         _connector.close()
         _connector = None
