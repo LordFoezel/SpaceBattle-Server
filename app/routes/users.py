@@ -1,6 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from app.core.exceptions import NotFoundError
 from app.core.openapi import with_errors
@@ -37,9 +37,9 @@ def update_user(user_id: int, payload: UserUpdate) -> User:
     return user
 
 
-@router.delete("/{user_id}", status_code=AppHttpStatus.NO_CONTENT, responses=with_errors())
-def delete_user(user_id: int) -> None:
+@router.delete("/{user_id}", status_code=AppHttpStatus.NO_CONTENT, response_class=Response, responses=with_errors(exclude=[204]))
+def delete_user(user_id: int) -> Response:
     affected = repo.delete(user_id)
     if affected == 0:
         raise NotFoundError(f"User {user_id} not found")
-    return None
+    return Response(status_code=AppHttpStatus.NO_CONTENT)

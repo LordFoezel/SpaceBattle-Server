@@ -39,6 +39,7 @@ class AppHttpStatus(IntEnum):
     METHOD_NOT_ALLOWED   = 405
     CONFLICT             = 409
     GONE                 = 410
+    PRECONDITION_FAILED  = 412,
     PAYLOAD_TOO_LARGE    = 413
     UNSUPPORTED_MEDIA    = 415
     UNPROCESSABLE_ENTITY = 422

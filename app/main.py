@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from app.core.logging import setup_logging
 from app.core.handlers import register_exception_handlers
-from app.routers import api_router
+from app.routes import api_router
 from app.config import API_TITLE, API_DESCRIPTION, API_VERSION
 from app.core.middleware import register_middlewares
 

@@ -1,6 +1,5 @@
-# app/core/openapi.py
 from app.core.errors import ErrorResponse
-from typing import Mapping, Any
+from typing import Iterable, Mapping, Any
 
 # Standard-Fehler, die viele Endpoints teilen
 DEFAULT_ERROR_RESPONSES: Mapping[int, dict[str, Any]] = {
@@ -13,9 +12,21 @@ DEFAULT_ERROR_RESPONSES: Mapping[int, dict[str, Any]] = {
     500: {"model": ErrorResponse},
 }
 
-def with_errors(extra: Mapping[int, dict[str, Any]] | None = None) -> dict[int, dict[str, Any]]:
-    """Mische Standard-Fehler mit route-spezifischen (z. B. 201 hat eh keinen Body)."""
+def with_errors(
+    extra: Mapping[int, dict[str, Any]] | None = None,
+    *,
+    exclude: Iterable[int] = (),
+) -> dict[int, dict[str, Any]]:
+    """
+    Kombiniert Standard-Error-Responses mit optionalen zusätzlichen.
+    Falls `exclude` gesetzt ist, werden diese Statuscodes entfernt.
+    """
     merged = dict(DEFAULT_ERROR_RESPONSES)
+
     if extra:
         merged.update(extra)
+
+    for code in exclude:
+        merged.pop(code, None)
+
     return merged
