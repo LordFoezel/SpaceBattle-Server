@@ -30,6 +30,8 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     name: str | None = None
+    email: EmailStr | None = None
+    password_hash: str | None = None
     verified: bool | None = None
     blocked: bool | None = None
     role: UserRole | None = None
