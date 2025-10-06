@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
-from app.models.users import User, UserCreate, UserUpdate
+from app.models.users import User, UserCreate, UserRole, UserUpdate
 from app.repositories.base import Repository
+from app.database.core import db
+from app.core.security import hash_password
 
 TABLE = "users"
 
@@ -66,3 +69,32 @@ def delete(user_id: int) -> int:
 
 def get_by_email(email: str) -> User | None:
     return get_one({"email": email})
+
+
+@dataclass
+class UserCredentials:
+    user: User
+    password_hash: str
+
+
+def get_credentials_by_email(email: str) -> UserCredentials | None:
+    row = db.fetch_one("SELECT * FROM users WHERE email = %s LIMIT 1", [email])
+    if not row:
+        return None
+
+    password_hash = row.get("password_hash")
+    user_payload = {k: v for k, v in row.items() if k != "password_hash"}
+    user = _user_factory(user_payload)
+    if not password_hash:
+        return None
+    return UserCredentials(user=user, password_hash=password_hash)
+
+
+def create_with_password(*, name: str, email: str, password: str, role: UserRole = UserRole.player) -> User:
+    payload = UserCreate(
+        name=name,
+        email=email,
+        password_hash=hash_password(password),
+        role=role,
+    )
+    return create(payload)
