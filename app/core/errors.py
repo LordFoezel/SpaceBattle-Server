@@ -7,6 +7,8 @@ class AppErrorCode(StrEnum):
     BAD_REQUEST          = "BAD_REQUEST"           # allgemeiner Request-Fehler
     VALIDATION           = "VALIDATION"            # Schema-/Feldvalidierung
     UNAUTHORIZED         = "UNAUTHORIZED"          # nicht eingeloggt/Token fehlt
+    USER_NOT_VALIDATED   = "USER_NOT_VALIDATED"    # Benutzerkonto nicht verifiziert
+    USER_BLOCKED         = "USER_BLOCKED"          # User is Blocked 
     FORBIDDEN            = "FORBIDDEN"             # keine Berechtigung
     NOT_FOUND            = "NOT_FOUND"             # Ressource fehlt
     METHOD_NOT_ALLOWED   = "METHOD_NOT_ALLOWED"

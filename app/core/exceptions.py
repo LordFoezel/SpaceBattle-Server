@@ -24,6 +24,14 @@ class ForbiddenError(AppError):
     status = AppHttpStatus.FORBIDDEN
     code = AppErrorCode.FORBIDDEN
 
+class UserNotValidatedError(ForbiddenError):
+    status = AppHttpStatus.FORBIDDEN
+    code = AppErrorCode.USER_NOT_VALIDATED
+
+class UserBlockedError(ForbiddenError):  
+    status = AppHttpStatus.FORBIDDEN  
+    code = AppErrorCode.USER_BLOCKED
+
 class NotFoundError(AppError):
     status = AppHttpStatus.NOT_FOUND
     code = AppErrorCode.NOT_FOUND

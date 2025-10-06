@@ -26,7 +26,6 @@ class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr
     password_hash: str
-    role: UserRole = UserRole.player
 
 
 class UserUpdate(BaseModel):
