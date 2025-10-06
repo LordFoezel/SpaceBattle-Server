@@ -19,6 +19,7 @@ class User(BaseModel):
     blocked: bool
     role: UserRole
     created_at: datetime
+    password_hash: str
 
 
 class UserCreate(BaseModel):
