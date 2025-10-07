@@ -31,9 +31,9 @@ def forgot_password_email(payload: EmailRequest) -> Response:
         if user:
             base_url = os.getenv("APP_BASE_URL", os.getenv("FRONTEND_URL", "http://localhost:3000")).rstrip("/")
             reset_link = f"{base_url}/reset-password?email={payload.email}"
-            subject = "Passwort zurǬcksetzen"
+            subject = "Passwort zurücksetzen"
             text = (
-                "Wir haben eine Anfrage zum ZurǬcksetzen deines Passworts erhalten.\n\n"
+                "Wir haben eine Anfrage zum zurücksetzen deines Passworts erhalten.\n\n"
                 f"Falls du das warst, klicke auf den folgenden Link:\n{reset_link}\n\n"
                 "Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren."
             )
@@ -60,11 +60,13 @@ def send_verification_email(payload: EmailRequest) -> Response:
         if user and not user.verified:
             base_url = os.getenv("APP_BASE_URL", os.getenv("FRONTEND_URL", "http://localhost:3000")).rstrip("/")
             verify_link = f"{base_url}/verify?email={payload.email}"
-            subject = "E-Mail-Adresse best��tigen"
+            login_link = f"{base_url}/login"
+            subject = "E-Mail-Adresse bestätigen"
             text = (
-                "Bitte best��tige deine E-Mail-Adresse, um dein Konto zu aktivieren.\n\n"
+                "Bitte bestätigen deine E-Mail-Adresse, um dein Konto zu aktivieren.\n\n"
                 f"Klicke dazu auf den folgenden Link:\n{verify_link}\n\n"
                 "Wenn du dich nicht registriert hast, ignoriere diese E-Mail."
+                f"Klicke Link:\n{login_link}\n um zum login zu gelangen"
             )
             send_mail(to=payload.email, subject=subject, text=text)
     except Exception:
