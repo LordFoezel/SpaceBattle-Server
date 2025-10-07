@@ -22,3 +22,13 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: User
+
+
+class EmailRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    token: str | None = None

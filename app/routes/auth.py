@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from psycopg import errors
 
 from app.core.auth import create_access_token
@@ -8,10 +8,10 @@ from app.core.errors import AppHttpStatus
 from app.core.exceptions import AlreadyExistsError, UnauthorizedError, UserNotValidatedError, UserBlockedError
 from app.core.openapi import with_errors
 from app.core.security import hash_password, verify_password
-from app.models.auth import LoginRequest, RegisterRequest, TokenResponse, VerifyRequest
-from app.models.users import UserCreate
+from app.models.auth import LoginRequest, RegisterRequest, TokenResponse, VerifyRequest, ResetPasswordRequest
+from app.models.users import UserCreate, UserUpdate
 from app.repositories import users as users_repo
-import logging
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -62,11 +62,34 @@ def register(payload: RegisterRequest) -> TokenResponse:
 )
 def register(payload: VerifyRequest) -> TokenResponse:
     try:
-        user = users_repo.create_with_password(
-            name=payload.id,
+        update = { "verified": "true" }
+        user = users_repo.update(
+            payload.id,
+            update
         )
     except errors.UniqueViolation as exc:
         raise AlreadyExistsError("Email already registered") from exc
 
     token = create_access_token(subject=user.id, role=user.role)
     return TokenResponse(access_token=token, user=user)
+
+
+@router.post(
+    "/reset-password",
+    status_code=AppHttpStatus.NO_CONTENT,
+    response_class=Response,
+    responses=with_errors({AppHttpStatus.NO_CONTENT: {"description": "Password updated if user exists"}}),
+)
+def reset_password(payload: ResetPasswordRequest) -> Response:
+    """Reset a user's password by email. Always returns 204.
+
+    If the user does not exist, still return 204 to avoid enumeration.
+    Optional token is accepted for future validation.
+    """
+    user = users_repo.get_one({"email": payload.email})
+    if not user:
+        return Response(status_code=AppHttpStatus.NO_CONTENT)
+    # TODO: validate payload.token if/when reset tokens are issued
+    new_hash = hash_password(payload.password)
+    users_repo.update(user.id, UserUpdate(password_hash=new_hash))
+    return Response(status_code=AppHttpStatus.NO_CONTENT)
