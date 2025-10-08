@@ -44,8 +44,7 @@ def register(payload: RegisterRequest) -> TokenResponse:
         user = users_repo.create(UserCreate(
             name=payload.name,
             email=payload.email,
-            password_hash=payload.password,
-            # password_hash=hash_password(payload.password),
+            password_hash=hash_password(payload.password),
         ))
     except errors.UniqueViolation as exc:
         raise AlreadyExistsError("Email already registered") from exc
