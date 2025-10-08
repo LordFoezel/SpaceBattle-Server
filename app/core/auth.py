@@ -71,6 +71,9 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
     payload = verify_token(token)
     return payload.sub
 
+def get_current_user_role(token: str = Depends(oauth2_scheme)) -> int:
+    payload = verify_token(token)
+    return payload.role
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     payload = verify_token(token)
