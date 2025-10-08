@@ -5,7 +5,7 @@ import bcrypt
 from app.util.token import extract_bearer_token
 from fastapi import Request
 from app.core.auth import get_current_user_role
-from server.app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.exceptions import ForbiddenError, UnauthorizedError
 
 def hash_password(password: str) -> str:
     """Hash a plaintext password using bcrypt."""
@@ -37,20 +37,20 @@ def check_role(request: Request, required: list[str]) -> bool:
 def check_role_route(request: Request, required: list[str]) -> None:
     token = extract_bearer_token(request)
     if not token:
-        raise UnauthorizedError()
+        raise UnauthorizedError("Missing bearer token")
     role = get_current_user_role(token)
     if not role:
-        raise ForbiddenError()
+        raise ForbiddenError("Invalid or missing user role")
     if not role in required: 
-        raise ForbiddenError()
+        raise ForbiddenError("Insufficient permissions")
 
 
 def require_roles(*roles: str):
     def dep(request: Request):
         token = extract_bearer_token(request)
         if not token:
-            raise UnauthorizedError()
+            raise UnauthorizedError("Missing bearer token")
         role = get_current_user_role(token)  
         if not role or role not in roles:
-            raise ForbiddenError()     
+            raise ForbiddenError("Insufficient permissions")     
     return dep

@@ -5,7 +5,7 @@ from fastapi.concurrency import run_in_threadpool
 import psycopg
 
 from app.database import DatabaseConfigurationError, get_connector
-from server.app.util.security import require_roles
+from app.util.security import require_roles
 
 router = APIRouter(prefix="/database", tags=["database"])
 

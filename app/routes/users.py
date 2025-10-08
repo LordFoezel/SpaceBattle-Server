@@ -8,7 +8,7 @@ from app.core.errors import AppHttpStatus
 from app.models.users import User, UserCreate, UserUpdate
 from app.repositories import users as repo
 from app.core.auth import get_current_user_role
-from server.app.util.security import check_role_route, require_roles
+from app.util.security import check_role_route, require_roles
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -45,5 +45,4 @@ def delete_user(user_id: int) -> Response:
     if affected == 0:
         raise NotFoundError(f"User {user_id} not found")
     return Response(status_code=AppHttpStatus.NO_CONTENT)
-
 
