@@ -1,12 +1,14 @@
 ﻿from __future__ import annotations
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Request, Depends
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import ForbiddenError, NotFoundError
 from app.core.openapi import with_errors
 from app.core.errors import AppHttpStatus
 from app.models.users import User, UserCreate, UserUpdate
 from app.repositories import users as repo
+from app.core.auth import get_current_user_role
+from server.app.util.security import check_role_route, require_roles
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -37,9 +39,11 @@ def update_user(user_id: int, payload: UserUpdate) -> User:
     return user
 
 
-@router.delete("/{user_id}", status_code=AppHttpStatus.NO_CONTENT, response_class=Response, responses=with_errors(exclude=[204]))
+@router.delete("/{user_id}", status_code=AppHttpStatus.NO_CONTENT, response_class=Response, responses=with_errors(exclude=[204]),  dependencies=[Depends(require_roles("admin"))])
 def delete_user(user_id: int) -> Response:
     affected = repo.delete(user_id)
     if affected == 0:
         raise NotFoundError(f"User {user_id} not found")
     return Response(status_code=AppHttpStatus.NO_CONTENT)
+
+

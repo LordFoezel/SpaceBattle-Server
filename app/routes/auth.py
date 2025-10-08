@@ -7,7 +7,7 @@ from app.core.auth import create_access_token
 from app.core.errors import AppHttpStatus
 from app.core.exceptions import AlreadyExistsError, UnauthorizedError, UserNotValidatedError, UserBlockedError
 from app.core.openapi import with_errors
-from app.core.security import hash_password, verify_password
+from app.util.security import hash_password, verify_password
 from app.models.auth import LoginRequest, RegisterRequest, TokenResponse, VerifyRequest, ResetPasswordRequest
 from app.models.users import UserCreate, UserUpdate
 from app.repositories import users as users_repo
