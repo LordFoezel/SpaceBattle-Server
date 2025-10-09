@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
-router = APIRouter()
+
+router = APIRouter(prefix="/system", tags=["system"])
 
 
 @router.get("/", summary="SpaceBattle welcome message")

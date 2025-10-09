@@ -13,7 +13,7 @@ from app.models.auth import EmailRequest
 from app.repositories import users as users_repo
 
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/mailer", tags=["mailer"])
 
 
 @router.post(

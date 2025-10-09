@@ -7,8 +7,7 @@ from app.core.openapi import with_errors
 from app.core.errors import AppHttpStatus
 from app.models.users import User, UserCreate, UserUpdate
 from app.repositories import users as repo
-from app.core.auth import get_current_user_role
-from app.util.security import check_role_route, require_roles
+from app.util.security import require_roles
 from app.routes.crud_helpers import (
     make_list_route,
     make_get_route,
