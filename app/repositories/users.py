@@ -45,8 +45,10 @@ def list_users(
     where: dict[str, Any] | None = None,
     limit: int | None = None,
     offset: int | None = None,
+    *,
+    order_by: str | None = None,
 ) -> list[User]:
-    return _repo.list(offset=offset, limit=limit, where=where)
+    return _repo.list(offset=offset, limit=limit, where=where, order_by=order_by)
 
 
 def create(payload: UserCreate) -> User:
