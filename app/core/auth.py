@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, ValidationError
 
-from app.models.users import User, UserRole
+from app.models.users import User, UserRole, UserLanguage
 from app.repositories import users as users_repo
 
 SECRET = os.getenv("JWT_SECRET", "dev-only-change-me")
@@ -25,6 +25,7 @@ class TokenPayload(BaseModel):
     role: UserRole
     iat: int
     exp: int
+    language: UserLanguage
 
 
 def _decode_token(token: str) -> dict:
@@ -50,13 +51,14 @@ def verify_token(token: str) -> TokenPayload:
         ) from exc
 
 
-def create_access_token(*, subject: int, role: UserRole, minutes: int = ACCESS_MIN) -> str:
+def create_access_token(*, subject: int, role: UserRole, minutes: int = ACCESS_MIN, language: UserLanguage) -> str:
     """Create a signed JWT containing the user's id and role."""
 
     now = datetime.now(timezone.utc)
     payload = {
         "sub": subject,
         "role": role.value,
+        "language": language,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=minutes)).timestamp()),
     }
@@ -74,6 +76,10 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
 def get_current_user_role(token: str = Depends(oauth2_scheme)) -> int:
     payload = verify_token(token)
     return payload.role
+
+def get_current_user_language(token: str = Depends(oauth2_scheme)) -> int:
+    payload = verify_token(token)
+    return payload.language
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     payload = verify_token(token)

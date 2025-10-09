@@ -10,6 +10,10 @@ class UserRole(str, Enum):
     admin = "admin"
     player = "player"
 
+class UserLanguage(str, Enum):
+    de = "de"
+    en = "en"
+
 
 class User(BaseModel):
     id: int
@@ -18,6 +22,7 @@ class User(BaseModel):
     verified: bool
     blocked: bool
     role: UserRole
+    language: UserLanguage
     created_at: datetime
     password_hash: str
 
@@ -35,3 +40,4 @@ class UserUpdate(BaseModel):
     verified: bool | None = None
     blocked: bool | None = None
     role: UserRole | None = None
+    language: UserLanguage | None = None

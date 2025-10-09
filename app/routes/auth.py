@@ -29,7 +29,7 @@ def login(payload: LoginRequest) -> TokenResponse:
         raise UserNotValidatedError("User account is not verified")
     if user.blocked:
         raise UserBlockedError("User account is blocked")
-    token = create_access_token(subject=user.id, role=user.role)
+    token = create_access_token(subject=user.id, role=user.role, language=user.language)
     return TokenResponse(access_token=token, user=user)
 
 
